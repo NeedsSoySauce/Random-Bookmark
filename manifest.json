@@ -3,7 +3,7 @@
     "version": "1.0",
     "description": "Open a random bookmark in a new tab",
     "manifest_version": 2,
-    "permissions": ["storage", "bookmarks"],
+    "permissions": ["storage", "bookmarks", "chrome://favicon/"],
     "background": {
         "scripts": ["background.js"],
         "persistent": false
@@ -15,5 +15,9 @@
     },
     "icons": {
         "18": "images/baseline_shuffle_white_18dp.png"
+    },
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": true
     }
 }

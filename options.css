@@ -1,0 +1,10 @@
+.offset-top {
+    margin-top: 40px;
+}
+
+span.text {
+    display: block;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

@@ -1,7 +1,7 @@
 const handleClick = tab => {
     chrome.storage.sync.get(['folderId'], syncedItems => {
         // Temporarily hardcoded while I implement configuration options
-        let folderId = syncedItems.folderId || '371';
+        let folderId = syncedItems.folderId || '0';
 
         chrome.storage.local.get(['tabId'], localItems => {
             let tabId = localItems.tabId || null;
