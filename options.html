@@ -6,6 +6,7 @@
         <link rel="stylesheet" type="text/css" href="options.css" />
         <script src="jquery-3.4.1.min.js"></script>
         <script src="semantic-ui-css/semantic.min.js"></script>
+        <script defer src="config.js"></script>
         <script defer src="options.js"></script>
     </head>
     <body>
@@ -16,8 +17,16 @@
                 </div>
 
                 <div class="row">
-                    <h5 class="ui header">Select a folder to open a random bookmark from</h5>
+                    <h5 class="ui header">Where should we open bookmarks from?</h5>
                     <div id="dropdown-root" class="ui fluid dropdown" multiple=""></div>
+                </div>
+
+                <div class="row">
+                    <h5 class="ui header">Should we include bookmarks in subfolders?</h5>
+                    <div id="subfolders-toggle" class="ui toggle checkbox">
+                        <input type="checkbox" name="subfolders" />
+                        <label>Include subfolders</label>
+                    </div>
                 </div>
             </div>
         </div>

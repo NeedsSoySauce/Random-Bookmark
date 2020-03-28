@@ -98,6 +98,26 @@ const buildTree = (nodes, parent, initialSelection) => {
     $('#dropdown-root').dropdown('set selected', initialSelection);
 };
 
+const setupIncludeSubfoldersToggle = () => {
+    $('#subfolders-toggle')
+        .checkbox()
+        .first()
+        .checkbox({
+            onChecked: () => {
+                chrome.storage.sync.set({ includeSubfolders: true });
+            },
+            onUnchecked: () => {
+                chrome.storage.sync.set({ includeSubfolders: false });
+            }
+        });
+
+    chrome.storage.sync.get(['includeSubfolders'], items => {
+        let includeSubfolders =
+            items.includeSubfolders !== undefined ? items.includeSubfolders : config.includeSubfolders;
+        $('#subfolders-toggle').checkbox(includeSubfolders ? 'set checked' : 'set unchecked');
+    });
+};
+
 const main = () => {
     let root = document.getElementById('dropdown-root');
     root.innerHTML = '';
@@ -108,6 +128,8 @@ const main = () => {
             buildTree(nodes, root, folderId);
         });
     });
+
+    setupIncludeSubfoldersToggle();
 };
 
 window.onload = main;

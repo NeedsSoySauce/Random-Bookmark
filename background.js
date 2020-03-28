@@ -1,7 +1,26 @@
+const appendLeafNodes = (node, leafNodes, recurse) => {
+    if (!node.children) {
+        leafNodes.push(node);
+    } else if (recurse) {
+        for (child of node.children) {
+            appendLeafNodes(child, leafNodes, recurse);
+        }
+    }
+};
+
+const getLeafNodes = (nodes, recurse = false) => {
+    let leafNodes = [];
+    for (node of nodes) {
+        appendLeafNodes(node, leafNodes, recurse);
+    }
+    return leafNodes;
+};
+
 const handleClick = tab => {
-    chrome.storage.sync.get(['folderId'], syncedItems => {
-        // Temporarily hardcoded while I implement configuration options
+    chrome.storage.sync.get(['folderId', 'includeSubfolders'], syncedItems => {
         let folderId = syncedItems.folderId || '0';
+        let includeSubfolders =
+            syncedItems.includeSubfolders !== undefined ? syncedItems.includeSubfolders : config.includeSubfolders;
 
         chrome.storage.local.get(['tabId'], localItems => {
             let tabId = localItems.tabId || null;
@@ -10,8 +29,9 @@ const handleClick = tab => {
                 throw 'No bookmarks folder set!';
             }
 
-            chrome.bookmarks.getChildren(folderId, nodes => {
-                let randomNode = nodes[Math.floor(Math.random() * nodes.length)];
+            chrome.bookmarks.getSubTree(folderId, nodes => {
+                let leafNodes = getLeafNodes(nodes[0].children, includeSubfolders);
+                let randomNode = leafNodes[Math.floor(Math.random() * leafNodes.length)];
                 let url = randomNode.url;
 
                 if (tabId) {

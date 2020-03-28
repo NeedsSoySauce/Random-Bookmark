@@ -2,7 +2,11 @@ body {
     padding-top: 40px;
 }
 
-span.text {
+.ui.header {
+    width: 100%;
+}
+
+.item span.text {
     display: block;
     max-width: 120px;
     overflow: hidden;

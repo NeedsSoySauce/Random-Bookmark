@@ -5,7 +5,7 @@
     "manifest_version": 2,
     "permissions": ["storage", "bookmarks", "chrome://favicon/"],
     "background": {
-        "scripts": ["background.js"],
+        "scripts": ["config.js", "background.js"],
         "persistent": false
     },
     "browser_action": {
