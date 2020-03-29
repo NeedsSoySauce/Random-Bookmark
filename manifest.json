@@ -1,9 +1,9 @@
 {
     "name": "Random Bookmark",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Open a random bookmark",
     "manifest_version": 2,
-    "permissions": ["storage", "bookmarks", "chrome://favicon/"],
+    "permissions": ["storage", "bookmarks"],
     "background": {
         "scripts": ["config.js", "background.js"],
         "persistent": false
