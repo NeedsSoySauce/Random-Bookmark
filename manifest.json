@@ -1,7 +1,7 @@
 {
     "name": "Random Bookmark",
     "version": "1.0",
-    "description": "Open a random bookmark in a new tab",
+    "description": "Open a random bookmark",
     "manifest_version": 2,
     "permissions": ["storage", "bookmarks", "chrome://favicon/"],
     "background": {
