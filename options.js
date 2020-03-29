@@ -118,6 +118,56 @@ const setupIncludeSubfoldersToggle = () => {
     });
 };
 
+const handleOpenIn = value => {
+    console.log(value)
+    let openInNewTab = config.openInNewtab;
+    let reuseTab = config.reuseTab;
+
+    switch (value) {
+        case 'new-tab':
+            openInNewTab = true;
+            reuseTab = false;
+            break;
+        case 'current-tab':
+            openInNewTab = false;
+            reuseTab = false;
+            break;
+        case 'init-new-tab':
+            openInNewTab = true;
+            reuseTab = true;
+            break;
+        case 'init-current-tab':
+            openInNewTab = false;
+            reuseTab = true;
+            break;
+    }
+
+    chrome.storage.sync.set({ openInNewTab, reuseTab });
+};
+
+const setupOpenInOptions = () => {
+    $('.ui.radio.checkbox').checkbox({
+        onChecked: a => {
+            let value = $('.ui.radio.checkbox.checked')[0].dataset['value'];
+            handleOpenIn(value);
+        }
+    });
+
+    chrome.storage.sync.get(['openInNewTab', 'reuseTab'], items => {
+        let openInNewTab = items.openInNewTab !== undefined ? items.openInNewTab : config.openInNewTab;
+        let reuseTab = items.reuseTab !== undefined ? items.reuseTab : config.reuseTab;
+
+        let value = 'new-tab';
+        if (openInNewTab) {
+            value = reuseTab ? 'init-new-tab' : 'new-tab';
+        } else {
+            value = reuseTab ? 'init-current-tab' : 'current-tab';
+        }
+
+        $(`.ui.radio.checkbox[data-value='${value}']`).checkbox('set checked');
+    });
+};
+
 const main = () => {
     let root = document.getElementById('dropdown-root');
     root.innerHTML = '';
@@ -130,6 +180,7 @@ const main = () => {
     });
 
     setupIncludeSubfoldersToggle();
+    setupOpenInOptions();
 };
 
 window.onload = main;

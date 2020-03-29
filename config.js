@@ -1,3 +1,5 @@
 const config = {
-    includeSubfolders: true
+    includeSubfolders: true,
+    openInNewTab: true,
+    reuseTab: true
 };
