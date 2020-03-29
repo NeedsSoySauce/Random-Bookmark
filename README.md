@@ -2,9 +2,11 @@
 
 # Random Bookmark
 
-A small chrome extension that opens a random bookmark.
+Random Bookmark is a small chrome extension that opens a random bookmark.
 
 But why, you may ask? I find most of the music I listen to through YouTube, so I like to keep a bookmarks folder of all the songs I like. Sometimes I can't decide what I want to listen to, so that's where this extension comes in handy.
+
+The extension is available [here](https://chrome.google.com/webstore/detail/random-bookmark/eeoohjpijemgnlcegchbabgdbnikdcpd) on the Chrome Web Store.
 
 ## Features
 
