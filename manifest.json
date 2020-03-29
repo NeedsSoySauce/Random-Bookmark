@@ -10,7 +10,9 @@
     },
     "browser_action": {
         "default_icon": {
-            "18": "images/baseline_shuffle_white_18dp.png"
+            "16": "images/16.png",
+            "48": "images/48.png",
+            "128": "images/128.png"
         }
     },
     "icons": {
