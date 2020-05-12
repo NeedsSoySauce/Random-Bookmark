@@ -6,14 +6,14 @@ const createMenuIcon = () => {
     return icon;
 };
 
-const createMenuLabel = labelText => {
+const createMenuLabel = (labelText) => {
     let label = document.createElement('span');
     label.classList.add('text');
     label.innerText = labelText;
     return label;
 };
 
-const createMenu = labelText => {
+const createMenu = (labelText) => {
     let menu = document.createElement('div');
     menu.className = 'menu right';
     return menu;
@@ -35,7 +35,7 @@ const appendMenuElements = (labelText, parent) => {
     return menu;
 };
 
-const createMenuItem = value => {
+const createMenuItem = (value) => {
     let item = document.createElement('div');
     item.classList.add('item');
     setDataValue(item, value);
@@ -46,7 +46,7 @@ const setDataValue = (node, value) => {
     node.setAttribute('data-value', value);
 };
 
-const isFolderNode = node => {
+const isFolderNode = (node) => {
     return Boolean(node.children);
 };
 
@@ -54,8 +54,8 @@ const isFolderNode = node => {
  * Returns true if the given bookmark node is the parent of a bookmark
  * folder node.
  */
-const isFolderParent = node => {
-    return isFolderNode(node) && node.children.some(child => isFolderNode(child));
+const isFolderParent = (node) => {
+    return isFolderNode(node) && node.children.some((child) => isFolderNode(child));
 };
 
 const tree = (node, parent) => {
@@ -111,15 +111,14 @@ const setupIncludeSubfoldersToggle = () => {
             }
         });
 
-    chrome.storage.sync.get(['includeSubfolders'], items => {
+    chrome.storage.sync.get(['includeSubfolders'], (items) => {
         let includeSubfolders =
             items.includeSubfolders !== undefined ? items.includeSubfolders : config.includeSubfolders;
         $('#subfolders-toggle').checkbox(includeSubfolders ? 'set checked' : 'set unchecked');
     });
 };
 
-const handleOpenIn = value => {
-    console.log(value)
+const handleOpenIn = (value) => {
     let openInNewTab = config.openInNewtab;
     let reuseTab = config.reuseTab;
 
@@ -146,14 +145,15 @@ const handleOpenIn = value => {
 };
 
 const setupOpenInOptions = () => {
-    $('.ui.radio.checkbox').checkbox({
-        onChecked: a => {
-            let value = $('.ui.radio.checkbox.checked')[0].dataset['value'];
+    let elem = $('#open-in-options');
+    elem.find('.ui.radio.checkbox').checkbox({
+        onChecked: (a) => {
+            let value = elem.find('.ui.radio.checkbox.checked')[0].dataset['value'];
             handleOpenIn(value);
         }
     });
 
-    chrome.storage.sync.get(['openInNewTab', 'reuseTab'], items => {
+    chrome.storage.sync.get(['openInNewTab', 'reuseTab'], (items) => {
         let openInNewTab = items.openInNewTab !== undefined ? items.openInNewTab : config.openInNewTab;
         let reuseTab = items.reuseTab !== undefined ? items.reuseTab : config.reuseTab;
 
@@ -164,7 +164,22 @@ const setupOpenInOptions = () => {
             value = reuseTab ? 'init-current-tab' : 'current-tab';
         }
 
-        $(`.ui.radio.checkbox[data-value='${value}']`).checkbox('set checked');
+        elem.find(`.ui.radio.checkbox[data-value='${value}']`).checkbox('set checked');
+    });
+};
+
+const setupSelectionMethodOptions = () => {
+    let elem = $('#bookmark-selection-options');
+    elem.find('.ui.radio.checkbox').checkbox({
+        onChecked: (a) => {
+            let value = elem.find('.ui.radio.checkbox.checked')[0].dataset['value'];
+            chrome.storage.sync.set({ selectionMethod: value });
+        }
+    });
+
+    chrome.storage.sync.get(['selectionMethod'], (items) => {
+        let selectionMethod = items.selectionMethod !== undefined ? items.selectionMethod : config.selectionMethod;
+        elem.find(`.ui.radio.checkbox[data-value='${selectionMethod}']`).checkbox('set checked');
     });
 };
 
@@ -172,15 +187,16 @@ const main = () => {
     let root = document.getElementById('dropdown-root');
     root.innerHTML = '';
 
-    chrome.storage.sync.get(['folderId'], items => {
+    chrome.storage.sync.get(['folderId'], (items) => {
         let folderId = items.folderId || 0;
-        chrome.bookmarks.getTree(nodes => {
+        chrome.bookmarks.getTree((nodes) => {
             buildTree(nodes, root, folderId);
         });
     });
 
     setupIncludeSubfoldersToggle();
     setupOpenInOptions();
+    setupSelectionMethodOptions();
 };
 
 window.onload = main;
