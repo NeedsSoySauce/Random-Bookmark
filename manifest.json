@@ -1,6 +1,6 @@
 {
     "name": "Random Bookmark",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "Open a random bookmark",
     "manifest_version": 2,
     "permissions": ["storage", "bookmarks"],

@@ -35,6 +35,14 @@ const getRandomNode = (nodes, selectionMethod, selectedNodeIds) => {
             if (unselectedIds.length === 0) {
                 selectedNodeIds = [];
                 unselectedIds = nodeIds;
+
+                // If there's more than one option remove the id of the bookmark that was last opened from our list of ids
+                // This is to prevent a bookmark being opened back to back
+                if (unselectedIds.length > 1) {
+                    let lastId = selectedNodeIds[selectedNodeIds.length - 1];
+                    unselectedIds = unselectedIds.filter(id => id !== lastId);
+                }
+
             }
 
             let id = unselectedIds[randInt(0, unselectedIds.length)];
