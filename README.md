@@ -18,4 +18,26 @@ This extension is pretty minimal and includes only a few config options.
 
 ## Dependencies
 
-Big thanks to [Semantic UI](https://semantic-ui.com/) and [material.io](https://material.io/resources/icons/?style=baseline) for the UI elements and icons.
+Big thanks to [Fomantic-UI](https://fomantic-ui.com/) and [material.io](https://material.io/resources/icons/?style=baseline) for the UI elements and icons.
+
+## Development
+
+Install dependencies:
+
+```
+npm install
+```
+
+Setup Fomantic-UI (default settings are fine):
+
+```bash
+cd node_modules/fomantic-ui
+npx gulp install
+npx gulp build
+```
+
+Build:
+
+```
+npm run build
+```

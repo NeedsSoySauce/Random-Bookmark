@@ -1,0 +1,34 @@
+{
+  "name": "random-bookmark",
+  "version": "1.2.0",
+  "description": "Open a random bookmark",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "copy": "copyfiles manifest.json LICENSE README.md images/* dist",
+    "build-options": "npx parcel build src/options.html",
+    "build": "tsc && npm run build-options && npm run copy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NeedsSoySauce/Random-Bookmark.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/NeedsSoySauce/Random-Bookmark/issues"
+  },
+  "homepage": "https://github.com/NeedsSoySauce/Random-Bookmark#readme",
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.1",
+    "@types/chrome": "^0.0.168",
+    "@types/jquery": "^3.5.9",
+    "@types/semantic-ui": "^2.2.7",
+    "copyfiles": "^2.4.1",
+    "typescript": "^4.5.2"
+  },
+  "dependencies": {
+    "fomantic-ui": "^2.8.8",
+    "jquery": "^3.6.0"
+  }
+}

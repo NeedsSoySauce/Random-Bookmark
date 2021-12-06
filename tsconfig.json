@@ -1,0 +1,15 @@
+{
+    "extends": "@tsconfig/recommended/tsconfig.json",
+    "compilerOptions": {
+        "module": "ES6",
+        "allowJs": true,
+        "checkJs": true,
+        "outDir": "dist"
+    },
+    "include": [
+        "src/**/*.js"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
