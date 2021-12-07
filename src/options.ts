@@ -1,4 +1,5 @@
-import { config } from "./config.js";
+import { config } from './config.js';
+import { BookmarkTreeNode } from './types.js';
 
 const PLACEHOLDER_TEXT = 'All Bookmarks';
 
@@ -8,20 +9,14 @@ const createMenuIcon = () => {
     return icon;
 };
 
-/**
- * @param {string} labelText 
- */
-const createMenuLabel = (labelText) => {
+const createMenuLabel = (labelText: string) => {
     let label = document.createElement('span');
     label.classList.add('text');
     label.innerText = labelText;
     return label;
 };
 
-/**
- * @param {string} labelText 
- */
-const createMenu = (labelText) => {
+const createMenu = () => {
     let menu = document.createElement('div');
     menu.className = 'menu right';
     return menu;
@@ -30,15 +25,10 @@ const createMenu = (labelText) => {
 /**
  * Appends a menu icon, label and menu to the given parent
  * element and returns the new child menu element.
- * 
- * @param {string} labelText 
- * @param {HTMLElement} parent 
  */
-const appendMenuElements = (labelText, parent) => {
+const appendMenuElements = (labelText: string, parent: HTMLElement) => {
     let icon = createMenuIcon();
     let label = createMenuLabel(labelText);
-    // @ts-ignore 
-    // TODO
     let menu = createMenu();
 
     parent.appendChild(icon);
@@ -48,49 +38,31 @@ const appendMenuElements = (labelText, parent) => {
     return menu;
 };
 
-/**
- * @param {string} value 
- */
-const createMenuItem = (value) => {
+const createMenuItem = (value: string) => {
     let item = document.createElement('div');
     item.classList.add('item');
     setDataValue(item, value);
     return item;
 };
 
-/** 
- * @param {HTMLElement} node
- * @param {string} value 
- */
-const setDataValue = (node, value) => {
+const setDataValue = (node: HTMLElement, value: string) => {
     node.setAttribute('data-value', value);
 };
 
-/**
- * @param {chrome.bookmarks.BookmarkTreeNode} node
- * @returns {boolean}
- */
-const isFolderNode = (node) => {
+const isFolderNode = (node: BookmarkTreeNode) => {
     return Boolean(node.children);
 };
 
 /**
  * Returns true if the given bookmark node is the parent of a bookmark
  * folder node.
- * 
- * @param {chrome.bookmarks.BookmarkTreeNode} node
- * @returns {boolean}
  */
-const isFolderParent = (node) => {
-    if (!node.children) return false
+const isFolderParent = (node: BookmarkTreeNode) => {
+    if (!node.children) return false;
     return isFolderNode(node) && node.children.some((child) => isFolderNode(child));
 };
 
-/** 
- * @param {chrome.bookmarks.BookmarkTreeNode} node
- * @param {HTMLElement} parent
-*/
-const tree = (node, parent) => {
+const tree = (node: BookmarkTreeNode, parent: HTMLElement) => {
     if (isFolderParent(node)) {
         let menu = appendMenuElements(node.title || PLACEHOLDER_TEXT, parent);
 
@@ -113,12 +85,8 @@ const tree = (node, parent) => {
 
 /**
  * Generates a nested dropdown menu.
- * 
- * @param {chrome.bookmarks.BookmarkTreeNode[]} nodes 
- * @param {HTMLElement} parent 
- * @param {number} initialSelection 
  */
-const buildTree = (nodes, parent, initialSelection) => {
+const buildTree = (nodes: BookmarkTreeNode[], parent: HTMLElement, initialSelection: number) => {
     for (const node of nodes) {
         tree(node, parent);
     }
@@ -158,10 +126,7 @@ const setupIncludeSubfoldersToggle = () => {
     });
 };
 
-/**
- * @param {string | undefined} value 
- */
-const handleOpenIn = (value) => {
+const handleOpenIn = (value: string) => {
     let openInNewTab = config.openInNewTab;
     let reuseTab = config.reuseTab;
 
@@ -192,6 +157,7 @@ const setupOpenInOptions = () => {
     elem.find('.ui.radio.checkbox').checkbox({
         onChecked: () => {
             let value = elem.find('.ui.radio.checkbox.checked')[0].dataset['value'];
+            if (!value) return;
             handleOpenIn(value);
         }
     });
@@ -228,12 +194,12 @@ const setupSelectionMethodOptions = () => {
 
 const getDropdownRoot = () => {
     let root = document.getElementById('dropdown-root');
-    if (!root) throw Error("Failed to find root")
-    return root
-}
+    if (!root) throw Error('Failed to find root');
+    return root;
+};
 
 const main = () => {
-    let root = getDropdownRoot()
+    let root = getDropdownRoot();
     root.innerHTML = '';
 
     chrome.storage.sync.get(['folderId'], (items) => {
@@ -248,4 +214,4 @@ const main = () => {
     setupSelectionMethodOptions();
 };
 
-document.addEventListener("DOMContentLoaded", main)
+document.addEventListener('DOMContentLoaded', main);

@@ -1,11 +1,7 @@
-import { config } from "./config.js";
+import { config } from './config.js';
+import { BookmarkTreeNode, Tab } from './types.js';
 
-/**
- * @param {chrome.bookmarks.BookmarkTreeNode} node
- * @param {chrome.bookmarks.BookmarkTreeNode[]} leafNodes 
- * @param {boolean} [recurse] 
- */
-const appendLeafNodes = (node, leafNodes, recurse) => {
+const appendLeafNodes = (node: BookmarkTreeNode, leafNodes: BookmarkTreeNode[], recurse = false) => {
     if (!node.children) {
         leafNodes.push(node);
     } else if (recurse) {
@@ -15,34 +11,19 @@ const appendLeafNodes = (node, leafNodes, recurse) => {
     }
 };
 
-/**
- * @param {chrome.bookmarks.BookmarkTreeNode[]} nodes 
- * @param {boolean} [recurse] 
- */
-const getLeafNodes = (nodes, recurse = false) => {
-    /** @type {chrome.bookmarks.BookmarkTreeNode[]} */
-    let leafNodes = [];
+const getLeafNodes = (nodes: BookmarkTreeNode[], recurse = false) => {
+    let leafNodes: BookmarkTreeNode[] = [];
     for (const node of nodes) {
         appendLeafNodes(node, leafNodes, recurse);
     }
     return leafNodes;
 };
 
-/**
- * @param {number} min 
- * @param {number} max 
- */
-const randInt = (min, max) => {
+const randInt = (min: number, max: number) => {
     return min + Math.floor(Math.random() * max);
 };
 
-/**
- * @param {chrome.bookmarks.BookmarkTreeNode[]} nodes 
- * @param {string} selectionMethod 
- * @param {string[]} selectedNodeIds 
- * @returns {chrome.bookmarks.BookmarkTreeNode | null}
- */
-const getRandomNode = (nodes, selectionMethod, selectedNodeIds) => {
+const getRandomNode = (nodes: BookmarkTreeNode[], selectionMethod: string, selectedNodeIds: string[]) => {
     switch (selectionMethod) {
         case 'random':
             return nodes[randInt(0, nodes.length)];
@@ -62,9 +43,8 @@ const getRandomNode = (nodes, selectionMethod, selectedNodeIds) => {
                 // This is to prevent a bookmark being opened back to back
                 if (unselectedIds.length > 1) {
                     let lastId = selectedNodeIds[selectedNodeIds.length - 1];
-                    unselectedIds = unselectedIds.filter(id => id !== lastId);
+                    unselectedIds = unselectedIds.filter((id) => id !== lastId);
                 }
-
             }
 
             let id = unselectedIds[randInt(0, unselectedIds.length)];
@@ -79,7 +59,7 @@ const getRandomNode = (nodes, selectionMethod, selectedNodeIds) => {
         case 'random-weighted':
             throw 'Not implemented';
     }
-    throw Error(`Invalid selection method ${selectionMethod}`)
+    throw Error(`Invalid selection method ${selectionMethod}`);
 };
 
 const handleClick = () => {
@@ -89,7 +69,8 @@ const handleClick = () => {
             const folderId = syncedItems.folderId || '0';
             const includeSubfolders =
                 syncedItems.includeSubfolders !== undefined ? syncedItems.includeSubfolders : config.includeSubfolders;
-            const openInNewTab = syncedItems.openInNewTab !== undefined ? syncedItems.openInNewTab : config.openInNewTab;
+            const openInNewTab =
+                syncedItems.openInNewTab !== undefined ? syncedItems.openInNewTab : config.openInNewTab;
             const reuseTab = syncedItems.reuseTab !== undefined ? syncedItems.reuseTab : config.reuseTab;
             const selectionMethod =
                 syncedItems.selectionMethod !== undefined ? syncedItems.selectionMethod : config.selectionMethod;
@@ -103,7 +84,7 @@ const handleClick = () => {
                 }
 
                 chrome.bookmarks.getSubTree(folderId, (nodes) => {
-                    if (!nodes[0].children) return
+                    if (!nodes[0].children) return;
 
                     const leafNodes = getLeafNodes(nodes[0].children, includeSubfolders);
 
@@ -121,7 +102,7 @@ const handleClick = () => {
                                     if (openInNewTab) {
                                         createTab(url);
                                     } else {
-                                        updateTab(url, null,);
+                                        updateTab(url, null);
                                     }
                                 });
                             });
@@ -142,21 +123,15 @@ const handleClick = () => {
  * tabId is null or undefined.
  *
  * If an error is encountered (e.g. the tab isn't found) onError(url, tabId) will be called.
- * 
- * @param {string} url
- * @param {number | null} [tabId]
- * @param {(url: string, tabId: number | null | undefined) => void} [onError]
  */
-const updateTab = (url, tabId, onError) => {
-    /** @param {chrome.tabs.Tab | undefined} tab */
-    const callback = (tab) => {
-        // If there's no tab with the given ID (the tab may have been closed)
+const updateTab = (url: string, tabId?: number | null, onError?: (url: string, tabId?: number | null) => void) => {
+    const callback = (tab?: Tab) => {
         if (chrome.runtime.lastError && onError) {
             onError(url, tabId);
         } else {
             chrome.storage.local.set({ tabId: tab?.id });
         }
-    }
+    };
 
     if (tabId) {
         chrome.tabs.update(tabId, { url }, callback);
@@ -167,10 +142,8 @@ const updateTab = (url, tabId, onError) => {
 
 /**
  * Open a new tab with the given url.
- * 
- * @param {string} url
  */
-const createTab = (url) => {
+const createTab = (url: string) => {
     chrome.tabs.create({ url }, (tab) => {
         chrome.storage.local.set({ tabId: tab.id });
     });

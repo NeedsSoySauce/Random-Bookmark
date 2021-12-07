@@ -5,8 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "copy": "copyfiles manifest.json LICENSE README.md images/* dist",
-    "build-options": "npx parcel build src/options.html",
-    "build": "tsc && npm run build-options && npm run copy"
+    "clean": "npx rimraf .parcel dist",
+    "build-options": "npx copyfiles -u 1 -e src/**.ts src/**/* .parcel && npx parcel build .parcel/options.html",
+    "build": "npm run clean && tsc && npx copyfiles -u 1 dist/**/* .parcel && npm run build-options && npm run copy"
   },
   "repository": {
     "type": "git",
@@ -25,7 +26,8 @@
     "@types/jquery": "^3.5.9",
     "@types/semantic-ui": "^2.2.7",
     "copyfiles": "^2.4.1",
-    "typescript": "^4.5.2"
+    "typescript": "^4.5.2",
+    "rimraf": "^3.0.2"
   },
   "dependencies": {
     "fomantic-ui": "^2.8.8",
