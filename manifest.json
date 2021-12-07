@@ -13,16 +13,17 @@
     },
     "action": {
         "default_icon": {
-            "16": "images/16.png",
-            "32": "images/32.png",
-            "48": "images/48.png",
-            "128": "images/128.png"
+            "16": "images/shuffle-white/16.png",
+            "32": "images/shuffle-white/32.png",
+            "48": "images/shuffle-white/48.png",
+            "128": "images/shuffle-white/128.png"
         }
     },
     "icons": {
-        "16": "images/16.png",
-        "48": "images/48.png",
-        "128": "images/128.png"
+        "16": "images/shuffle-white/16.png",
+        "32": "images/shuffle-white/32.png",
+        "48": "images/shuffle-white/48.png",
+        "128": "images/shuffle-white/128.png"
     },
     "options_ui": {
         "page": "options.html",

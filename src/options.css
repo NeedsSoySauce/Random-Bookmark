@@ -12,3 +12,36 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.ui.segments.compact {
+    margin: 0;
+}
+
+.options .icon.option {
+    margin: 4px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+}
+
+.options .icon.option:hover {
+    background-color: #c2c2c22c;
+    border: 1px solid #a7a7a7;
+}
+
+.options .dark .icon.option:hover {
+    background-color: #f3f3f318;
+    border: 1px solid #a7a7a7;
+}
+
+.options .icon.option.selected {
+    border: 1px solid #a7a7a7;
+}
+
+.options .dark {
+    background-color: #353535;
+}
+
+#icon-options > div {
+    padding: 4px 8px;
+    border-radius: 5px;
+}

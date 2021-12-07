@@ -1,5 +1,6 @@
 import { config } from './config.js';
-import { BookmarkTreeNode, Tab } from './types.js';
+import { getIconPath } from './shared.js';
+import { BookmarkSelectionMethod, BookmarkTreeNode, IconStyle, Tab } from './types.js';
 
 const appendLeafNodes = (node: BookmarkTreeNode, leafNodes: BookmarkTreeNode[], recurse = false) => {
     if (!node.children) {
@@ -23,7 +24,11 @@ const randInt = (min: number, max: number) => {
     return min + Math.floor(Math.random() * max);
 };
 
-const getRandomNode = (nodes: BookmarkTreeNode[], selectionMethod: string, selectedNodeIds: string[]) => {
+const getRandomNode = (
+    nodes: BookmarkTreeNode[],
+    selectionMethod: BookmarkSelectionMethod,
+    selectedNodeIds: string[]
+) => {
     switch (selectionMethod) {
         case 'random':
             return nodes[randInt(0, nodes.length)];
@@ -148,5 +153,10 @@ const createTab = (url: string) => {
         chrome.storage.local.set({ tabId: tab.id });
     });
 };
+
+chrome.storage.sync.get('iconStyle', ({ iconStyle }) => {
+    const path = getIconPath(iconStyle);
+    chrome.action.setIcon({ path });
+});
 
 chrome.action.onClicked.addListener(handleClick);

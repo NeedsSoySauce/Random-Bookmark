@@ -1,4 +1,5 @@
 import { config } from './config.js';
+import { getIconPath } from './shared.js';
 import { BookmarkTreeNode } from './types.js';
 
 const PLACEHOLDER_TEXT = 'All Bookmarks';
@@ -198,6 +199,32 @@ const getDropdownRoot = () => {
     return root;
 };
 
+const setupIconOptions = () => {
+    const nodes = document.querySelectorAll<HTMLImageElement>('#icon-options .option');
+
+    const selectIcon = (node: HTMLImageElement) => {
+        const iconStyle = node.getAttribute('data-value');
+        if (!iconStyle) throw Error('Failed to find icon style');
+        const path = getIconPath(iconStyle);
+        chrome.action.setIcon({ path });
+        chrome.storage.sync.set({ iconStyle });
+        nodes.forEach((n) => n.classList.remove('selected'));
+        node.classList.add('selected');
+    };
+
+    // Select currently selected icon style
+    chrome.storage.sync.get('iconStyle', ({ iconStyle }) => {
+        const style = iconStyle ?? config.iconStyle;
+        const node = Array.from(nodes).find((n) => n.getAttribute('data-value') === style);
+        if (!node) throw Error('Failed to find node');
+        selectIcon(node);
+    });
+
+    for (const node of nodes) {
+        node.addEventListener('click', () => selectIcon(node));
+    }
+};
+
 const main = () => {
     let root = getDropdownRoot();
     root.innerHTML = '';
@@ -212,6 +239,7 @@ const main = () => {
     setupIncludeSubfoldersToggle();
     setupOpenInOptions();
     setupSelectionMethodOptions();
+    setupIconOptions();
 };
 
 document.addEventListener('DOMContentLoaded', main);

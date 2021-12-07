@@ -4,7 +4,7 @@
   "description": "Open a random bookmark",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "copy": "copyfiles manifest.json LICENSE README.md images/* dist",
+    "copy": "copyfiles manifest.json LICENSE README.md images/**/* dist",
     "clean": "npx rimraf .parcel dist",
     "build-options": "npx copyfiles -u 1 -e src/**.ts src/**/* .parcel && npx parcel build .parcel/options.html",
     "build": "npm run clean && tsc && npx copyfiles -u 1 dist/**/* .parcel && npm run build-options && npm run copy"
