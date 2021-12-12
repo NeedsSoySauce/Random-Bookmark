@@ -28,5 +28,19 @@
     "options_ui": {
         "page": "options.html",
         "open_in_tab": true
+    },
+    "commands": {
+        "_execute_action": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+B",
+                "mac": "Command+Shift+B"
+            }
+        },
+        "shuffle": {
+            "description": "Shuffle"
+        },
+        "open-options": {
+            "description": "Open options"
+        }
     }
 }

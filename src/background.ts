@@ -1,6 +1,6 @@
-import { config } from './config.js';
 import { getIconPath } from './shared.js';
-import { BookmarkSelectionMethod, BookmarkTreeNode, IconStyle, Tab } from './types.js';
+import { getLocalStorage, getSyncStorage, updateLocalStorage } from './storage.js';
+import { BookmarkSelectionMethod, BookmarkTreeNode, Tab } from './types.js';
 
 const appendLeafNodes = (node: BookmarkTreeNode, leafNodes: BookmarkTreeNode[], recurse = false) => {
     if (!node.children) {
@@ -24,15 +24,16 @@ const randInt = (min: number, max: number) => {
     return min + Math.floor(Math.random() * max);
 };
 
-const getRandomNode = (
+const getRandomNode = async (
     nodes: BookmarkTreeNode[],
     selectionMethod: BookmarkSelectionMethod,
     selectedNodeIds: string[]
 ) => {
+    if (!nodes.length) return null;
     switch (selectionMethod) {
-        case 'random':
+        case BookmarkSelectionMethod.RANDOM:
             return nodes[randInt(0, nodes.length)];
-        case 'random-consume':
+        case BookmarkSelectionMethod.RANDOM_CONSUME:
             let selectedIds = new Set(selectedNodeIds);
 
             // Create an array of ids that haven't been selected
@@ -56,107 +57,82 @@ const getRandomNode = (
 
             // Add the id we've selected to our list of selected ids
             selectedNodeIds.push(id);
-            chrome.storage.sync.set({ selectedNodeIds });
+            await updateLocalStorage({ selectedNodeIds });
 
             // Find the bookmark that has our randomly selected id
-            // We could use chrome.bookmark.get() to do this, but this method is easier
             return nodes.find((node) => node.id === id) ?? null;
-        case 'random-weighted':
+        case BookmarkSelectionMethod.RANDOM_WEIGHTED:
             throw 'Not implemented';
     }
     throw Error(`Invalid selection method ${selectionMethod}`);
 };
 
-const handleClick = () => {
-    chrome.storage.sync.get(
-        ['folderId', 'includeSubfolders', 'openInNewTab', 'reuseTab', 'selectionMethod', 'selectedNodeIds'],
-        (syncedItems) => {
-            const folderId = syncedItems.folderId || '0';
-            const includeSubfolders =
-                syncedItems.includeSubfolders !== undefined ? syncedItems.includeSubfolders : config.includeSubfolders;
-            const openInNewTab =
-                syncedItems.openInNewTab !== undefined ? syncedItems.openInNewTab : config.openInNewTab;
-            const reuseTab = syncedItems.reuseTab !== undefined ? syncedItems.reuseTab : config.reuseTab;
-            const selectionMethod =
-                syncedItems.selectionMethod !== undefined ? syncedItems.selectionMethod : config.selectionMethod;
-            const selectedNodeIds = syncedItems.selectedNodeIds || [];
+const handleClick = async () => {
+    const { folderId, includeSubfolders, openInNewTab, reuseTab, selectionMethod } = await getSyncStorage();
+    const { selectedNodeIds, tabId } = await getLocalStorage();
 
-            chrome.storage.local.get(['tabId'], (localItems) => {
-                let tabId = localItems.tabId || null;
+    const nodes = await chrome.bookmarks.getSubTree(folderId);
 
-                if (!folderId) {
-                    throw 'No bookmarks folder set!';
-                }
+    if (!nodes[0].children) return;
 
-                chrome.bookmarks.getSubTree(folderId, (nodes) => {
-                    if (!nodes[0].children) return;
+    const leafNodes = getLeafNodes(nodes[0].children, includeSubfolders);
+    const randomNode = await getRandomNode(leafNodes, selectionMethod, selectedNodeIds);
+    const url = randomNode?.url;
 
-                    const leafNodes = getLeafNodes(nodes[0].children, includeSubfolders);
+    if (!url) return;
 
-                    if (leafNodes.length === 0) return;
+    let tab: Tab | null = null;
 
-                    const randomNode = getRandomNode(leafNodes, selectionMethod, selectedNodeIds);
-
-                    const url = randomNode?.url;
-
-                    if (url) {
-                        if (tabId && reuseTab) {
-                            chrome.storage.local.get('tabId', (items) => {
-                                tabId = items.tabId || null;
-                                updateTab(url, tabId, (url) => {
-                                    if (openInNewTab) {
-                                        createTab(url);
-                                    } else {
-                                        updateTab(url, null);
-                                    }
-                                });
-                            });
-                        } else if (openInNewTab) {
-                            createTab(url);
-                        } else {
-                            updateTab(url);
-                        }
-                    }
-                });
-            });
+    if (tabId && reuseTab) {
+        try {
+            tab = await updateTab(url, tabId);
+        } catch (err) {
+            // Could have failed as the tab with tabId was closed so fallback to opening in a new tab or updating the
+            // current tab based on the the user's settings
+            if (openInNewTab) {
+                tab = await createTab(url);
+            } else {
+                tab = await updateTab(url, null);
+            }
         }
-    );
+    } else if (openInNewTab) {
+        tab = await createTab(url);
+    } else {
+        tab = await updateTab(url);
+    }
+
+    if (tab?.id !== tabId) {
+        await updateLocalStorage({ tabId });
+    }
 };
 
 /**
  * Update an existing tab opened by this extension, or the current tab if the given
- * tabId is null or undefined.
- *
- * If an error is encountered (e.g. the tab isn't found) onError(url, tabId) will be called.
+ * tabId is null or undefined. Returns the updated tab.
  */
-const updateTab = (url: string, tabId?: number | null, onError?: (url: string, tabId?: number | null) => void) => {
-    const callback = (tab?: Tab) => {
-        if (chrome.runtime.lastError && onError) {
-            onError(url, tabId);
-        } else {
-            chrome.storage.local.set({ tabId: tab?.id });
-        }
-    };
-
-    if (tabId) {
-        chrome.tabs.update(tabId, { url }, callback);
-    } else {
-        chrome.tabs.update({ url }, callback);
-    }
+const updateTab = async (url: string, tabId?: number | null) => {
+    return tabId ? chrome.tabs.update(tabId, { url }) : chrome.tabs.update({ url });
 };
 
 /**
  * Open a new tab with the given url.
  */
 const createTab = (url: string) => {
-    chrome.tabs.create({ url }, (tab) => {
-        chrome.storage.local.set({ tabId: tab.id });
-    });
+    return chrome.tabs.create({ url });
 };
 
-chrome.storage.sync.get('iconStyle', ({ iconStyle }) => {
+const handleCommand = async (command: string, tab: Tab) => {
+    if (command === 'shuffle') {
+        await updateLocalStorage({ selectedNodeIds: [] });
+    } else if (command === 'open-options') {
+        chrome.runtime.openOptionsPage();
+    }
+};
+
+getSyncStorage({ iconStyle: true }).then(({ iconStyle }) => {
     const path = getIconPath(iconStyle);
     chrome.action.setIcon({ path });
 });
 
+chrome.commands.onCommand.addListener(handleCommand);
 chrome.action.onClicked.addListener(handleClick);

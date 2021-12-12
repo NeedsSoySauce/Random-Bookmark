@@ -1,9 +1,7 @@
-import { config } from './config.js';
 import { IconStyle } from './types.js';
 
-export const getIconPath = (iconStyle?: IconStyle | string) => {
-    const style = iconStyle ?? config.iconStyle;
-    switch (style) {
+export const getIconPath = (iconStyle: IconStyle | string) => {
+    switch (iconStyle) {
         case IconStyle.BLACK:
             return 'images/shuffle-black/128.png';
         case IconStyle.WHITE:

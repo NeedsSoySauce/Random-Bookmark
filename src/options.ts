@@ -1,6 +1,13 @@
-import { config } from './config.js';
 import { getIconPath } from './shared.js';
-import { BookmarkTreeNode } from './types.js';
+import { defaultSyncStorageState, getSyncStorage, updateSyncStorage } from './storage.js';
+import { BookmarkSelectionMethod, BookmarkTreeNode, IconStyle } from './types.js';
+
+enum BookmarkSelectionMethodInput {
+    NEW_TAB = 'new-tab',
+    CURRENT_TAB = 'current-tab',
+    INIT_NEW_TAB = 'init-new-tab',
+    INIT_CURRENT_TAB = 'init-current-tab'
+}
 
 const PLACEHOLDER_TEXT = 'All Bookmarks';
 
@@ -87,7 +94,7 @@ const tree = (node: BookmarkTreeNode, parent: HTMLElement) => {
 /**
  * Generates a nested dropdown menu.
  */
-const buildTree = (nodes: BookmarkTreeNode[], parent: HTMLElement, initialSelection: number) => {
+const buildTree = (nodes: BookmarkTreeNode[], parent: HTMLElement, initialSelection: string) => {
     for (const node of nodes) {
         tree(node, parent);
     }
@@ -98,99 +105,93 @@ const buildTree = (nodes: BookmarkTreeNode[], parent: HTMLElement, initialSelect
         // @ts-ignore
         placeholder: PLACEHOLDER_TEXT,
         onChange: (value, text, choice) => {
-            let folderId = value || 0;
-            chrome.storage.sync.set({ folderId });
+            const folderId = value || defaultSyncStorageState.folderId;
+            updateSyncStorage({ folderId });
         }
     });
 
     $('#dropdown-root').dropdown('set selected', initialSelection);
 };
 
-const setupIncludeSubfoldersToggle = () => {
+const setupIncludeSubfoldersToggle = async () => {
     $('#subfolders-toggle')
         .checkbox()
         .first()
         .checkbox({
             onChecked: () => {
-                chrome.storage.sync.set({ includeSubfolders: true });
+                updateSyncStorage({ includeSubfolders: true });
             },
             onUnchecked: () => {
-                chrome.storage.sync.set({ includeSubfolders: false });
+                updateSyncStorage({ includeSubfolders: false });
             }
         });
 
-    chrome.storage.sync.get(['includeSubfolders'], (items) => {
-        let includeSubfolders =
-            items.includeSubfolders !== undefined ? items.includeSubfolders : config.includeSubfolders;
-        // @ts-ignore
-        $('#subfolders-toggle').checkbox(includeSubfolders ? 'set checked' : 'set unchecked');
-    });
+    const { includeSubfolders } = await getSyncStorage({ includeSubfolders: true });
+    // @ts-ignore
+    $('#subfolders-toggle').checkbox(includeSubfolders ? 'set checked' : 'set unchecked');
 };
 
-const handleOpenIn = (value: string) => {
-    let openInNewTab = config.openInNewTab;
-    let reuseTab = config.reuseTab;
+const handleOpenIn = (value: BookmarkSelectionMethodInput) => {
+    let openInNewTab = defaultSyncStorageState.openInNewTab;
+    let reuseTab = defaultSyncStorageState.reuseTab;
 
     switch (value) {
-        case 'new-tab':
+        case BookmarkSelectionMethodInput.NEW_TAB:
             openInNewTab = true;
             reuseTab = false;
             break;
-        case 'current-tab':
+        case BookmarkSelectionMethodInput.CURRENT_TAB:
             openInNewTab = false;
             reuseTab = false;
             break;
-        case 'init-new-tab':
+        case BookmarkSelectionMethodInput.INIT_NEW_TAB:
             openInNewTab = true;
             reuseTab = true;
             break;
-        case 'init-current-tab':
+        case BookmarkSelectionMethodInput.INIT_CURRENT_TAB:
             openInNewTab = false;
             reuseTab = true;
             break;
     }
 
-    chrome.storage.sync.set({ openInNewTab, reuseTab });
+    updateSyncStorage({ openInNewTab, reuseTab });
 };
 
-const setupOpenInOptions = () => {
-    let elem = $('#open-in-options');
+const setupOpenInOptions = async () => {
+    const elem = $('#open-in-options');
     elem.find('.ui.radio.checkbox').checkbox({
         onChecked: () => {
-            let value = elem.find('.ui.radio.checkbox.checked')[0].dataset['value'];
+            const value = elem.find('.ui.radio.checkbox.checked')[0].dataset['value'];
             if (!value) return;
-            handleOpenIn(value);
+            handleOpenIn(value as BookmarkSelectionMethodInput);
         }
     });
 
-    chrome.storage.sync.get(['openInNewTab', 'reuseTab'], (items) => {
-        let openInNewTab = items.openInNewTab !== undefined ? items.openInNewTab : config.openInNewTab;
-        let reuseTab = items.reuseTab !== undefined ? items.reuseTab : config.reuseTab;
+    const { openInNewTab, reuseTab } = await getSyncStorage({ openInNewTab: true, reuseTab: true });
 
-        let value = 'new-tab';
-        if (openInNewTab) {
-            value = reuseTab ? 'init-new-tab' : 'new-tab';
-        } else {
-            value = reuseTab ? 'init-current-tab' : 'current-tab';
-        }
+    let value = BookmarkSelectionMethodInput.NEW_TAB;
+    if (openInNewTab) {
+        value = reuseTab ? BookmarkSelectionMethodInput.INIT_NEW_TAB : BookmarkSelectionMethodInput.NEW_TAB;
+    } else {
+        value = reuseTab ? BookmarkSelectionMethodInput.INIT_CURRENT_TAB : BookmarkSelectionMethodInput.CURRENT_TAB;
+    }
 
-        elem.find(`.ui.radio.checkbox[data-value='${value}']`).checkbox('set checked');
-    });
+    elem.find(`.ui.radio.checkbox[data-value='${value}']`).checkbox('set checked');
 };
 
-const setupSelectionMethodOptions = () => {
+const setupSelectionMethodOptions = async () => {
     let elem = $('#bookmark-selection-options');
     elem.find('.ui.radio.checkbox').checkbox({
         onChecked: () => {
-            let value = elem.find('.ui.radio.checkbox.checked')[0].dataset['value'];
-            chrome.storage.sync.set({ selectionMethod: value });
+            let selectionMethod = elem.find('.ui.radio.checkbox.checked')[0].dataset[
+                'value'
+            ] as BookmarkSelectionMethod;
+            updateSyncStorage({ selectionMethod });
         }
     });
 
-    chrome.storage.sync.get(['selectionMethod'], (items) => {
-        let selectionMethod = items.selectionMethod !== undefined ? items.selectionMethod : config.selectionMethod;
-        elem.find(`.ui.radio.checkbox[data-value='${selectionMethod}']`).checkbox('set checked');
-    });
+    const { selectionMethod } = await getSyncStorage({ selectionMethod: true });
+    elem.find(`.ui.radio.checkbox[data-value='${selectionMethod}']`).checkbox('set checked');
 };
 
 const getDropdownRoot = () => {
@@ -199,46 +200,41 @@ const getDropdownRoot = () => {
     return root;
 };
 
-const setupIconOptions = () => {
+const setupIconOptions = async () => {
     const nodes = document.querySelectorAll<HTMLImageElement>('#icon-options .option');
 
     const selectIcon = (node: HTMLImageElement) => {
-        const iconStyle = node.getAttribute('data-value');
+        const iconStyle = node.getAttribute('data-value') as IconStyle;
         if (!iconStyle) throw Error('Failed to find icon style');
         const path = getIconPath(iconStyle);
         chrome.action.setIcon({ path });
-        chrome.storage.sync.set({ iconStyle });
+        updateSyncStorage({ iconStyle });
         nodes.forEach((n) => n.classList.remove('selected'));
         node.classList.add('selected');
     };
 
     // Select currently selected icon style
-    chrome.storage.sync.get('iconStyle', ({ iconStyle }) => {
-        const style = iconStyle ?? config.iconStyle;
-        const node = Array.from(nodes).find((n) => n.getAttribute('data-value') === style);
-        if (!node) throw Error('Failed to find node');
-        selectIcon(node);
-    });
+    const { iconStyle } = await getSyncStorage({ iconStyle: true });
+    const node = Array.from(nodes).find((n) => n.getAttribute('data-value') === iconStyle);
+    if (!node) throw Error('Failed to find node');
+    selectIcon(node);
 
     for (const node of nodes) {
         node.addEventListener('click', () => selectIcon(node));
     }
 };
 
-const main = () => {
+const main = async () => {
     let root = getDropdownRoot();
     root.innerHTML = '';
 
-    chrome.storage.sync.get(['folderId'], (items) => {
-        let folderId = items.folderId || 0;
-        chrome.bookmarks.getTree((nodes) => {
-            buildTree(nodes, root, folderId);
-        });
-    });
+    const { folderId } = await getSyncStorage({ folderId: true });
+    const nodes = await chrome.bookmarks.getTree();
+    buildTree(nodes, root, folderId);
 
-    setupIncludeSubfoldersToggle();
-    setupOpenInOptions();
-    setupSelectionMethodOptions();
+    await setupIncludeSubfoldersToggle();
+    await setupOpenInOptions();
+    await setupSelectionMethodOptions();
     setupIconOptions();
 };
 
