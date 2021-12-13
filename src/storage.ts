@@ -19,7 +19,7 @@ export const defaultSyncStorageState: SyncStorageState = {
     openInNewTab: true,
     reuseTab: true,
     selectionMethod: BookmarkSelectionMethod.RANDOM,
-    iconStyle: IconStyle.WHITE,
+    iconStyle: IconStyle.GRAY,
     folderId: '0'
 };
 

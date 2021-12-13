@@ -1,5 +1,5 @@
 export type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
-export type Tab = chrome.tabs.Tab
+export type Tab = chrome.tabs.Tab;
 
 export enum BookmarkSelectionMethod {
     RANDOM = 'random',
@@ -10,8 +10,10 @@ export enum BookmarkSelectionMethod {
 export enum IconStyle {
     WHITE = 'white',
     BLACK = 'black',
+    GRAY = 'gray',
     ON_WHITE = 'on-white',
-    ON_BLACK = 'on-black'
+    ON_BLACK = 'on-black',
+    ON_GRAY = 'on-gray'
 }
 
 export type AnyValue<T> = {

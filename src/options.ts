@@ -201,31 +201,28 @@ const getDropdownRoot = () => {
 };
 
 const setupIconOptions = async () => {
-    const nodes = document.querySelectorAll<HTMLImageElement>('#icon-options .option');
+    const options = Array.from(document.querySelectorAll<HTMLImageElement>('#icon-options .option'));
 
-    const selectIcon = (node: HTMLImageElement) => {
-        const iconStyle = node.getAttribute('data-value') as IconStyle;
-        if (!iconStyle) throw Error('Failed to find icon style');
+    const selectIcon = (iconStyle: IconStyle) => {
         const path = getIconPath(iconStyle);
         chrome.action.setIcon({ path });
         updateSyncStorage({ iconStyle });
-        nodes.forEach((n) => n.classList.remove('selected'));
-        node.classList.add('selected');
+        options.forEach((n) => n.classList.remove('selected'));
+        const nodes = options.filter((option) => option.getAttribute('data-value') === iconStyle);
+        nodes.forEach((node) => node.classList.add('selected'));
     };
 
     // Select currently selected icon style
     const { iconStyle } = await getSyncStorage({ iconStyle: true });
-    const node = Array.from(nodes).find((n) => n.getAttribute('data-value') === iconStyle);
-    if (!node) throw Error('Failed to find node');
-    selectIcon(node);
-
-    for (const node of nodes) {
-        node.addEventListener('click', () => selectIcon(node));
+    selectIcon(iconStyle);
+    for (const node of options) {
+        const iconStyle = node.getAttribute('data-value') as IconStyle;
+        node.addEventListener('click', () => selectIcon(iconStyle));
     }
 };
 
 const main = async () => {
-    let root = getDropdownRoot();
+    const root = getDropdownRoot();
     root.innerHTML = '';
 
     const { folderId } = await getSyncStorage({ folderId: true });
@@ -235,7 +232,10 @@ const main = async () => {
     await setupIncludeSubfoldersToggle();
     await setupOpenInOptions();
     await setupSelectionMethodOptions();
-    setupIconOptions();
+    await setupIconOptions();
+
+    const content = document.querySelector('#content');
+    content?.classList.remove('hidden');
 };
 
 document.addEventListener('DOMContentLoaded', main);
