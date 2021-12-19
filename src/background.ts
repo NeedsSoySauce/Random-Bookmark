@@ -1,6 +1,7 @@
-import { getIconPath } from './shared.js';
-import { getLocalStorage, getSyncStorage, updateLocalStorage } from './storage.js';
-import { BookmarkSelectionMethod, BookmarkTreeNode, Tab } from './types.js';
+import { createOrUpdateHistoryAlarm, registerAlarms } from './alarms.js';
+import { getHistoryRetentionPeriodConfiguration, getIconPath, shuffleBookmarkSelection } from './shared.js';
+import { getLocalStorage, getSyncStorage, HistoryItem, updateLocalStorage } from './storage.js';
+import { BookmarkSelectionMethod, BookmarkTreeNode, Command, Tab } from './types.js';
 
 const appendLeafNodes = (node: BookmarkTreeNode, leafNodes: BookmarkTreeNode[], recurse = false) => {
     if (!node.children) {
@@ -64,11 +65,11 @@ const getRandomNode = async (
         case BookmarkSelectionMethod.RANDOM_WEIGHTED:
             throw 'Not implemented';
     }
-    throw Error(`Invalid selection method ${selectionMethod}`);
 };
 
 const handleClick = async () => {
-    const { folderId, includeSubfolders, openInNewTab, reuseTab, selectionMethod } = await getSyncStorage();
+    const { folderId, includeSubfolders, openInNewTab, reuseTab, selectionMethod, isHistoryEnabled } =
+        await getSyncStorage();
     const { selectedNodeIds, tabId } = await getLocalStorage();
 
     const nodes = await chrome.bookmarks.getSubTree(folderId);
@@ -76,8 +77,8 @@ const handleClick = async () => {
     if (!nodes[0].children) return;
 
     const leafNodes = getLeafNodes(nodes[0].children, includeSubfolders);
-    const randomNode = await getRandomNode(leafNodes, selectionMethod, selectedNodeIds);
-    const url = randomNode?.url;
+    const node = await getRandomNode(leafNodes, selectionMethod, selectedNodeIds);
+    const url = node?.url;
 
     if (!url) return;
 
@@ -102,8 +103,27 @@ const handleClick = async () => {
     }
 
     if (tab?.id !== tabId) {
-        await updateLocalStorage({ tabId });
+        await updateLocalStorage({ tabId: tab?.id ?? null });
     }
+
+    if (isHistoryEnabled) {
+        await updateHistory(node);
+    }
+};
+
+const updateHistory = async (node: BookmarkTreeNode) => {
+    const { history } = await getLocalStorage({ history: true });
+
+    if (!node.url) return;
+
+    const item: HistoryItem = {
+        date: new Date().toISOString(),
+        title: node.title,
+        url: node.url
+    };
+
+    const newHistory = [item, ...history];
+    await updateLocalStorage({ history: newHistory });
 };
 
 /**
@@ -122,17 +142,20 @@ const createTab = (url: string) => {
 };
 
 const handleCommand = async (command: string, tab: Tab) => {
-    if (command === 'shuffle') {
-        await updateLocalStorage({ selectedNodeIds: [] });
-    } else if (command === 'open-options') {
+    if (command === Command.SHUFFLE) {
+        await shuffleBookmarkSelection();
+    } else if (command === Command.OPEN_OPTIONS) {
         chrome.runtime.openOptionsPage();
     }
 };
 
-getSyncStorage({ iconStyle: true }).then(({ iconStyle }) => {
+getSyncStorage({ iconStyle: true, historyRetentionPeriod: true }).then(({ iconStyle, historyRetentionPeriod }) => {
     const path = getIconPath(iconStyle);
     chrome.action.setIcon({ path });
+    const { alarmPeriodInMinutes } = getHistoryRetentionPeriodConfiguration(historyRetentionPeriod);
+    createOrUpdateHistoryAlarm(alarmPeriodInMinutes);
 });
 
 chrome.commands.onCommand.addListener(handleCommand);
 chrome.action.onClicked.addListener(handleClick);
+registerAlarms();

@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "copy": "copyfiles manifest.json LICENSE README.md images/**/* dist",
     "clean": "npx rimraf .parcel dist",
-    "build-options": "npx copyfiles -u 1 -e src/**.ts src/**/* .parcel && npx parcel build .parcel/options.html",
+    "build-options": "npx copyfiles -u 1 -e src/**.ts src/**/* .parcel && npx parcel build .parcel/options.html --no-optimize",
     "build": "npm run clean && tsc && npx copyfiles -u 1 dist/**/* .parcel && npm run build-options && npm run copy"
   },
   "repository": {
@@ -23,13 +23,15 @@
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.1",
     "@types/chrome": "^0.0.168",
+    "@types/dateformat": "^5.0.0",
     "@types/jquery": "^3.5.9",
     "@types/semantic-ui": "^2.2.7",
     "copyfiles": "^2.4.1",
-    "typescript": "^4.5.2",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "typescript": "^4.5.2"
   },
   "dependencies": {
+    "dateformat": "^5.0.2",
     "fomantic-ui": "^2.8.8",
     "jquery": "^3.6.0"
   }

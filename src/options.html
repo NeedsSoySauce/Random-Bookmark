@@ -9,8 +9,8 @@
         <script type="module" src="options.js"></script>
     </head>
     <body>
-        <div class="ui container offset-top">
-            <div id="content" class="ui grid segment very padded hidden">
+        <div id="content" class="ui container clear">
+            <div class="ui grid segment very padded">
                 <div class="row">
                     <h1 class="ui header">Random Bookmark Options</h1>
                 </div>
@@ -70,12 +70,17 @@
                             </div>
                         </div>
                         <div class="field">
-                            <div class="ui radio checkbox" data-value="random-consume">
+                            <div class="ui radio checkbox flex align-items-center" data-value="random-consume">
                                 <input type="radio" name="bookmark-selection" />
                                 <label
                                     >Random, but don't pick a bookmark a second time until all other options have been
                                     visited</label
                                 >
+                                <div class="ml-8">
+                                    <button id="shuffle-button" class="ml-8 mini compact ui basic button">
+                                        Shuffle
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <!-- <div class="field">
@@ -139,6 +144,47 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="ui grid segment very padded">
+                <div class="row">
+                    <div class="flex wrap">
+                        <div class="mr-8">
+                            <h2 class="ui header">History</h2>
+                        </div>
+                        <div>
+                            <button id="toggle-history-button" class="mini compact ui basic button">Off</button>
+                        </div>
+                        <div>
+                            <button
+                                id="history-retention-period-button"
+                                class="mini compact ui labeled icon basic button"
+                                data-tooltip="Automatically delete items older than this value."
+                            >
+                                <i class="trash icon"></i>
+                                <span></span>
+                            </button>
+                        </div>
+                        <div>
+                            <button id="clear-history-button" class="mini compact ui basic button">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="history-empty-hint" class="row"></div>
+
+                <div id="history-table" class="row centered">
+                    <table class="ui small very basic table">
+                        <thead>
+                            <tr>
+                                <th class="three wide">Date</th>
+                                <th class="eight wide">Name</th>
+                                <th class="five wide">Url</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
         </div>

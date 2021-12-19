@@ -12,9 +12,9 @@ The extension is available [here](https://chrome.google.com/webstore/detail/rand
 
 This extension is pretty minimal and includes only a few config options.
 
-* Set the folder to pick a random bookmark from
-* Toggle whether to include bookmarks in subfolders
-* Set where bookmarks should be opened
+-   Set the folder to pick a random bookmark from
+-   Toggle whether to include bookmarks in subfolders
+-   Set where bookmarks should be opened
 
 ## Dependencies
 
@@ -41,3 +41,5 @@ Build:
 ```
 npm run build
 ```
+
+**Note**: Parcel build optimizations are disabled (at the moment) due to a bug in how it processes things.

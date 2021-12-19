@@ -2,6 +2,10 @@ body {
     padding-top: 40px;
 }
 
+table {
+    word-break: break-word;
+}
+
 .ui.header {
     width: 100%;
 }
@@ -46,10 +50,56 @@ body {
     border-radius: 5px;
 }
 
-.hidden {
+.clear {
     opacity: 0;
 }
 
 #content {
+    /* Add empty space at the bottom of the page to allow users to scroll
+       content at the bottom of the page higher up the screen */
+    padding-bottom: 100vh;
     transition: opacity 0.3s;
+}
+
+#content > div:not(:first-child) {
+    /* Have to use !important to override fomantic UI */
+    margin-top: 16px !important;
+}
+
+#content > .padded {
+    padding: 1.5em 3em;
+}
+
+.ui.checkbox.flex {
+    display: flex;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex.align-items-center {
+    align-items: center;
+}
+
+.flex.wrap {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ml-8 {
+    margin-left: 8px;
+}
+
+.mr-8 {
+    margin-right: 8px;
+}
+
+.ml-16 {
+    margin-left: 16px;
+}
+
+.hidden {
+    display: none !important;
+    visibility: hidden !important;
 }
