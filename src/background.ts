@@ -1,7 +1,8 @@
 import { createOrUpdateHistoryAlarm, registerAlarms } from './alarms.js';
+import { localStorageProvider, syncStorageProvider } from './index.js';
 import { getHistoryRetentionPeriodConfiguration, getIconPath, shuffleBookmarkSelection } from './shared.js';
-import { getLocalStorage, getSyncStorage, HistoryItem, updateLocalStorage } from './storage.js';
-import { BookmarkSelectionMethod, BookmarkTreeNode, Command, Tab } from './types.js';
+import { HistoryItem } from './storage.js';
+import { BookmarkSelectionMethod, BookmarkTreeNode, ChromeStorageChanges, Command, Tab } from './types.js';
 
 const appendLeafNodes = (node: BookmarkTreeNode, leafNodes: BookmarkTreeNode[], recurse = false) => {
     if (!node.children) {
@@ -58,7 +59,7 @@ const getRandomNode = async (
 
             // Add the id we've selected to our list of selected ids
             selectedNodeIds.push(id);
-            await updateLocalStorage({ selectedNodeIds });
+            await localStorageProvider.set({ selectedNodeIds });
 
             // Find the bookmark that has our randomly selected id
             return nodes.find((node) => node.id === id) ?? null;
@@ -68,11 +69,22 @@ const getRandomNode = async (
 };
 
 const handleClick = async () => {
-    const { folderId, includeSubfolders, openInNewTab, reuseTab, selectionMethod, isHistoryEnabled } =
-        await getSyncStorage();
-    const { selectedNodeIds, tabId } = await getLocalStorage();
+    const { includeSubfolders, openInNewTab, reuseTab, selectionMethod, isHistoryEnabled } =
+        await syncStorageProvider.get({
+            includeSubfolders: true,
+            openInNewTab: true,
+            reuseTab: true,
+            selectionMethod: true,
+            isHistoryEnabled: true
+        });
 
-    const nodes = await chrome.bookmarks.getSubTree(folderId);
+    const { selectedNodeIds, tabId, bookmarksFolderId } = await localStorageProvider.get({
+        selectedNodeIds: true,
+        tabId: true,
+        bookmarksFolderId: true
+    });
+
+    const nodes = await chrome.bookmarks.getSubTree(bookmarksFolderId);
 
     if (!nodes[0].children) return;
 
@@ -103,16 +115,16 @@ const handleClick = async () => {
     }
 
     if (tab?.id !== tabId) {
-        await updateLocalStorage({ tabId: tab?.id ?? null });
+        await localStorageProvider.set({ tabId: tab?.id ?? null });
     }
 
-    if (isHistoryEnabled) {
+    if (isHistoryEnabled && node) {
         await updateHistory(node);
     }
 };
 
 const updateHistory = async (node: BookmarkTreeNode) => {
-    const { history } = await getLocalStorage({ history: true });
+    const { history } = await localStorageProvider.get({ history: true });
 
     if (!node.url) return;
 
@@ -123,7 +135,7 @@ const updateHistory = async (node: BookmarkTreeNode) => {
     };
 
     const newHistory = [item, ...history];
-    await updateLocalStorage({ history: newHistory });
+    await localStorageProvider.set({ history: newHistory });
 };
 
 /**
@@ -149,13 +161,16 @@ const handleCommand = async (command: string, tab: Tab) => {
     }
 };
 
-getSyncStorage({ iconStyle: true, historyRetentionPeriod: true }).then(({ iconStyle, historyRetentionPeriod }) => {
-    const path = getIconPath(iconStyle);
-    chrome.action.setIcon({ path });
-    const { alarmPeriodInMinutes } = getHistoryRetentionPeriodConfiguration(historyRetentionPeriod);
-    createOrUpdateHistoryAlarm(alarmPeriodInMinutes);
-});
+syncStorageProvider
+    .get({ iconStyle: true, historyRetentionPeriod: true })
+    .then(({ iconStyle, historyRetentionPeriod }) => {
+        const path = getIconPath(iconStyle);
+        chrome.action.setIcon({ path });
+        const { alarmPeriodInMinutes } = getHistoryRetentionPeriodConfiguration(historyRetentionPeriod);
+        createOrUpdateHistoryAlarm(alarmPeriodInMinutes);
+    });
+
+registerAlarms();
 
 chrome.commands.onCommand.addListener(handleCommand);
 chrome.action.onClicked.addListener(handleClick);
-registerAlarms();

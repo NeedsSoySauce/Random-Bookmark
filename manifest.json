@@ -33,9 +33,10 @@
     "commands": {
         "_execute_action": {
             "suggested_key": {
-                "default": "Ctrl+B",
-                "mac": "Command+B"
-            }
+                "default": "Ctrl+Shift+7",
+                "mac": "Command+Shift+7"
+            },
+            "global": true
         },
         "shuffle": {
             "description": "Shuffle"

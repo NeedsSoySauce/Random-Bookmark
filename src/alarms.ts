@@ -1,17 +1,16 @@
+import { localStorageProvider, syncStorageProvider } from './index.js';
 import { getHistoryRetentionPeriodConfiguration } from './shared.js';
-import { getLocalStorage, getSyncStorage, updateLocalStorage } from './storage.js';
 
 const HISTORY_ALARM = 'CLEANUP_HISTORY_ALARM';
 
 const handleAlarm = async (alarm: chrome.alarms.Alarm) => {
     if (alarm.name !== HISTORY_ALARM) return;
-    const { historyRetentionPeriod } = await getSyncStorage({ historyRetentionPeriod: true });
-    const { history } = await getLocalStorage({ history: true });
+    const { historyRetentionPeriod } = await syncStorageProvider.get({ historyRetentionPeriod: true });
+    const { history } = await localStorageProvider.get({ history: true });
     const { milliseconds } = getHistoryRetentionPeriodConfiguration(historyRetentionPeriod);
     const now = Date.now();
     const newHistory = history.filter((item) => now - new Date(item.date).getTime() < milliseconds);
-    await updateLocalStorage({ history: newHistory });
-    console.log(alarm);
+    await localStorageProvider.set({ history: newHistory });
 };
 
 export const createOrUpdateHistoryAlarm = (periodInMinutes = 60) => {

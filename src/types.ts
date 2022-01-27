@@ -1,5 +1,6 @@
 export type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 export type Tab = chrome.tabs.Tab;
+export type ChromeStorageChanges = { [key: string]: chrome.storage.StorageChange };
 
 export enum BookmarkSelectionMethod {
     RANDOM = 'random',

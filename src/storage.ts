@@ -1,4 +1,15 @@
-import { AnyValue, BookmarkSelectionMethod, HistoryRetentionPeriod, IconStyle } from './types.js';
+import { AnyValue, BookmarkSelectionMethod, ChromeStorageChanges, HistoryRetentionPeriod, IconStyle } from './types.js';
+
+type Filter<T> = Partial<AnyValue<T>>;
+
+export type Changes<T> = {
+    [P in keyof T]?: {
+        oldValue?: T[P] | null;
+        newValue?: T[P] | null;
+    };
+};
+
+export type ChangeListener<T> = (changes: Changes<T>) => void;
 
 export interface HistoryItem {
     date: string;
@@ -6,83 +17,101 @@ export interface HistoryItem {
     title: string;
 }
 
-export interface SyncStorageState {
+export interface StorageState {
+    version: number;
+}
+
+export interface SyncStorageState extends StorageState {
     includeSubfolders: boolean;
     openInNewTab: boolean;
     reuseTab: boolean;
     selectionMethod: BookmarkSelectionMethod;
     iconStyle: IconStyle;
-    folderId: string;
     isHistoryEnabled: boolean;
     historyRetentionPeriod: HistoryRetentionPeriod;
 }
 
-export interface LocalStorageState {
+export interface LocalStorageState extends StorageState {
+    bookmarksFolderId: string;
     tabId: number | null;
     selectedNodeIds: string[];
     history: HistoryItem[];
 }
 
-export const defaultSyncStorageState: SyncStorageState = {
-    includeSubfolders: true,
-    openInNewTab: true,
-    reuseTab: true,
-    selectionMethod: BookmarkSelectionMethod.RANDOM,
-    iconStyle: IconStyle.GRAY,
-    folderId: '0',
-    isHistoryEnabled: false,
-    historyRetentionPeriod: HistoryRetentionPeriod.TWENTY_FOUR_HOURS
-};
+export abstract class StorageProvider<TState extends StorageState> {
+    public abstract observe(listener: ChangeListener<TState>): void;
 
-export const defaultLocalStorageState: LocalStorageState = {
-    tabId: null,
-    selectedNodeIds: [],
-    history: []
-};
+    public abstract readonly initialState: TState;
+    public abstract get<T extends Filter<TState>>(
+        keys: T
+    ): Promise<{ [K in keyof TState as undefined extends T[K] ? never : K]: TState[K] }>;
+    public abstract get(): Promise<TState>;
 
-type Filter<T> = Partial<AnyValue<T>>;
-
-export function getSyncStorage<T extends Filter<SyncStorageState>>(
-    keys: T
-): Promise<{ [K in keyof SyncStorageState as undefined extends T[K] ? never : K]: SyncStorageState[K] }>;
-export function getSyncStorage(): Promise<SyncStorageState>;
-export async function getSyncStorage<T extends Filter<SyncStorageState>>(keys?: T) {
-    const filterKeys = Object.keys(keys ?? defaultSyncStorageState);
-    const items = await chrome.storage.sync.get(filterKeys);
-    const defaultItemValues = Object.fromEntries(
-        Object.entries(defaultSyncStorageState).filter(([k]) => filterKeys.includes(k))
-    );
-    return { ...defaultItemValues, ...items };
+    public abstract set<T extends Partial<TState>>(state: T): Promise<void>;
 }
 
-export function getLocalStorage<T extends Filter<LocalStorageState>>(
-    keys: T
-): Promise<{ [K in keyof LocalStorageState as undefined extends T[K] ? never : K]: LocalStorageState[K] }>;
-export function getLocalStorage(): Promise<LocalStorageState>;
-export async function getLocalStorage<T extends Filter<LocalStorageState>>(keys?: T) {
-    const filterKeys = Object.keys(keys ?? defaultLocalStorageState);
-    const items = await chrome.storage.local.get(filterKeys);
-    const defaultItemValues = Object.fromEntries(
-        Object.entries(defaultLocalStorageState).filter(([k]) => filterKeys.includes(k))
-    );
-    return { ...defaultItemValues, ...items };
+export class SyncStorageProvider extends StorageProvider<SyncStorageState> {
+    public readonly initialState: SyncStorageState;
+
+    public constructor(initialState: SyncStorageState) {
+        super();
+        this.initialState = initialState;
+    }
+
+    public observe(listener: ChangeListener<SyncStorageState>): void {
+        chrome.storage.onChanged.addListener((changes, areaName) => {
+            if (areaName !== 'sync') return;
+            listener(changes);
+        });
+    }
+
+    public get<T extends Filter<SyncStorageState>>(
+        keys: T
+    ): Promise<{ [K in keyof SyncStorageState as undefined extends T[K] ? never : K]: SyncStorageState[K] }>;
+    public get(): Promise<SyncStorageState>;
+    public async get<T extends Filter<SyncStorageState>>(keys?: T) {
+        const filterKeys = Object.keys(keys ?? this.initialState);
+        const items = await chrome.storage.sync.get(filterKeys);
+        const defaultItemValues = Object.fromEntries(
+            Object.entries(this.initialState).filter(([k]) => filterKeys.includes(k))
+        );
+        return { ...defaultItemValues, ...items };
+    }
+
+    public set<T extends Partial<SyncStorageState>>(state: T): Promise<void> {
+        return chrome.storage.sync.set(state);
+    }
 }
 
-export const updateSyncStorage = <T extends Partial<SyncStorageState>>(state: T): Promise<void> => {
-    return chrome.storage.sync.set(state);
-};
+export class LocalStorageProvider extends StorageProvider<LocalStorageState> {
+    public readonly initialState: LocalStorageState;
 
-export const updateLocalStorage = <T extends Partial<LocalStorageState>>(state: T): Promise<void> => {
-    return chrome.storage.local.set(state);
-};
+    public constructor(initialState: LocalStorageState) {
+        super();
+        this.initialState = initialState;
+    }
 
-export const observeHistory = (listener: (oldValue: HistoryItem[], newValue: HistoryItem[]) => void) => {
-    chrome.storage.onChanged.addListener(
-        (changes: { [key: string]: chrome.storage.StorageChange }, areaName: 'sync' | 'local' | 'managed') => {
+    public observe(listener: ChangeListener<SyncStorageState>): void {
+        chrome.storage.onChanged.addListener((changes, areaName) => {
             if (areaName !== 'local') return;
-            if (!('history' in changes)) return;
-            const { oldValue, newValue } = changes.history;
-            listener(oldValue ?? [], newValue ?? []);
-        }
-    );
-};
+            listener(changes);
+        });
+    }
+
+    public get<T extends Filter<LocalStorageState>>(
+        keys: T
+    ): Promise<{ [K in keyof LocalStorageState as undefined extends T[K] ? never : K]: LocalStorageState[K] }>;
+    public get(): Promise<LocalStorageState>;
+    public async get<T extends Filter<LocalStorageState>>(keys?: T) {
+        const filterKeys = Object.keys(keys ?? this.initialState);
+        const items = await chrome.storage.local.get(filterKeys);
+        const defaultItemValues = Object.fromEntries(
+            Object.entries(this.initialState).filter(([k]) => filterKeys.includes(k))
+        );
+        return { ...defaultItemValues, ...items };
+    }
+
+    public set<T extends Partial<LocalStorageState>>(state: T): Promise<void> {
+        return chrome.storage.local.set(state);
+    }
+}

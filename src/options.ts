@@ -1,6 +1,7 @@
 import dateFormat from 'dateformat';
 import { createOrUpdateHistoryAlarm } from './alarms.js';
-import { ArrayPager } from './pages.js';
+import { localStorageProvider, syncStorageProvider } from './index.js';
+import { ArrayPager } from './pager.js';
 import {
     getElement,
     getHistoryRetentionPeriodConfiguration,
@@ -12,15 +13,7 @@ import {
     setupToggleButton,
     shuffleBookmarkSelection
 } from './shared.js';
-import {
-    defaultSyncStorageState,
-    getLocalStorage,
-    getSyncStorage,
-    HistoryItem,
-    observeHistory,
-    updateLocalStorage,
-    updateSyncStorage
-} from './storage.js';
+import { HistoryItem } from './storage.js';
 import {
     BookmarkSelectionMethod,
     BookmarkTreeNode,
@@ -134,8 +127,8 @@ const buildTree = (nodes: BookmarkTreeNode[], parent: HTMLElement, initialSelect
         // @ts-ignore
         placeholder: PLACEHOLDER_TEXT,
         onChange: (value, text, choice) => {
-            const folderId = value || defaultSyncStorageState.folderId;
-            updateSyncStorage({ folderId });
+            const bookmarksFolderId = value || localStorageProvider.initialState.bookmarksFolderId;
+            localStorageProvider.set({ bookmarksFolderId });
         }
     });
 
@@ -148,21 +141,20 @@ const setupIncludeSubfoldersToggle = async () => {
         .first()
         .checkbox({
             onChecked: () => {
-                updateSyncStorage({ includeSubfolders: true });
+                syncStorageProvider.set({ includeSubfolders: true });
             },
             onUnchecked: () => {
-                updateSyncStorage({ includeSubfolders: false });
+                syncStorageProvider.set({ includeSubfolders: false });
             }
         });
 
-    const { includeSubfolders } = await getSyncStorage({ includeSubfolders: true });
+    const { includeSubfolders } = await syncStorageProvider.get({ includeSubfolders: true });
     // @ts-ignore
     $('#subfolders-toggle').checkbox(includeSubfolders ? 'set checked' : 'set unchecked');
 };
 
 const handleOpenIn = (value: BookmarkSelectionMethodInput) => {
-    let openInNewTab = defaultSyncStorageState.openInNewTab;
-    let reuseTab = defaultSyncStorageState.reuseTab;
+    let { openInNewTab, reuseTab } = syncStorageProvider.initialState;
 
     switch (value) {
         case BookmarkSelectionMethodInput.NEW_TAB:
@@ -183,7 +175,7 @@ const handleOpenIn = (value: BookmarkSelectionMethodInput) => {
             break;
     }
 
-    updateSyncStorage({ openInNewTab, reuseTab });
+    syncStorageProvider.set({ openInNewTab, reuseTab });
 };
 
 const setupOpenInOptions = async () => {
@@ -196,7 +188,7 @@ const setupOpenInOptions = async () => {
         }
     });
 
-    const { openInNewTab, reuseTab } = await getSyncStorage({ openInNewTab: true, reuseTab: true });
+    const { openInNewTab, reuseTab } = await syncStorageProvider.get({ openInNewTab: true, reuseTab: true });
 
     let value = BookmarkSelectionMethodInput.NEW_TAB;
     if (openInNewTab) {
@@ -221,11 +213,11 @@ const setupSelectionMethodOptions = async () => {
             let selectionMethod = elem.find('.ui.radio.checkbox.checked')[0].dataset[
                 'value'
             ] as BookmarkSelectionMethod;
-            updateSyncStorage({ selectionMethod });
+            syncStorageProvider.set({ selectionMethod });
         }
     });
 
-    const { selectionMethod } = await getSyncStorage({ selectionMethod: true });
+    const { selectionMethod } = await syncStorageProvider.get({ selectionMethod: true });
     elem.find(`.ui.radio.checkbox[data-value='${selectionMethod}']`).checkbox('set checked');
 };
 
@@ -241,14 +233,14 @@ const setupIconOptions = async () => {
     const selectIcon = (iconStyle: IconStyle) => {
         const path = getIconPath(iconStyle);
         chrome.action.setIcon({ path });
-        updateSyncStorage({ iconStyle });
+        syncStorageProvider.set({ iconStyle });
         options.forEach((n) => n.classList.remove('selected'));
         const nodes = options.filter((option) => option.getAttribute('data-value') === iconStyle);
         nodes.forEach((node) => node.classList.add('selected'));
     };
 
     // Select currently selected icon style
-    const { iconStyle } = await getSyncStorage({ iconStyle: true });
+    const { iconStyle } = await syncStorageProvider.get({ iconStyle: true });
     selectIcon(iconStyle);
     for (const node of options) {
         const iconStyle = node.getAttribute('data-value') as IconStyle;
@@ -323,9 +315,17 @@ const setupHistoryItemPagination = (history: HistoryItem[], container: HTMLEleme
 const setupHistoryClearButton = (container: HTMLElement, callback: VisibilityToggleCallback) => {
     const clearButton = getElement<HTMLButtonElement>('#clear-history-button');
     setupActionButton(clearButton, async () => {
-        await updateLocalStorage({ history: [] });
+        await localStorageProvider.set({ history: [] });
         callback(false);
         removeChildren(container);
+    });
+};
+
+const observeHistory = (listener: (oldValue: HistoryItem[], newValue: HistoryItem[]) => void) => {
+    localStorageProvider.observe((changes) => {
+        if (!changes.history) return;
+        const { oldValue, newValue } = changes.history;
+        listener(oldValue ?? [], newValue ?? []);
     });
 };
 
@@ -355,7 +355,7 @@ const setupHistoryToggleButton = (hint: Element, isHistoryEnabled: MutableState<
     setupToggleButton(
         toggleButton,
         async (ev, isActive) => {
-            await updateSyncStorage({ isHistoryEnabled: isActive });
+            await syncStorageProvider.set({ isHistoryEnabled: isActive });
             isHistoryEnabled.value = isActive;
             if (isActive) {
                 toggleButton.textContent = 'On';
@@ -382,7 +382,7 @@ const setupHistoryRetentionPeriodButton = (historyRetentionPeriod: HistoryRetent
         label,
         async (ev, value) => {
             const config = getHistoryRetentionPeriodConfiguration(value);
-            await updateSyncStorage({ historyRetentionPeriod: value });
+            await syncStorageProvider.set({ historyRetentionPeriod: value });
             createOrUpdateHistoryAlarm(config.alarmPeriodInMinutes);
         },
         values,
@@ -395,11 +395,11 @@ const setupHistory = async () => {
     const table = getElement<HTMLTableElement>('#history-table');
     const tableBody = getElement<HTMLTableSectionElement>(table, 'tbody');
 
-    const { isHistoryEnabled, historyRetentionPeriod } = await getSyncStorage({
+    const { isHistoryEnabled, historyRetentionPeriod } = await syncStorageProvider.get({
         isHistoryEnabled: true,
         historyRetentionPeriod: true
     });
-    const { history } = await getLocalStorage({ history: true });
+    const { history } = await localStorageProvider.get({ history: true });
     const setTableVisiblity = createVisibilityToggle(table, hint);
     const state = new MutableState(isHistoryEnabled);
 
@@ -416,9 +416,9 @@ const main = async () => {
     const root = getDropdownRoot();
     root.innerHTML = '';
 
-    const { folderId } = await getSyncStorage({ folderId: true });
+    const { bookmarksFolderId } = await localStorageProvider.get({ bookmarksFolderId: true });
     const nodes = await chrome.bookmarks.getTree();
-    buildTree(nodes, root, folderId);
+    buildTree(nodes, root, bookmarksFolderId);
 
     await setupIncludeSubfoldersToggle();
     await setupOpenInOptions();

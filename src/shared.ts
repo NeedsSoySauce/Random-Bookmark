@@ -1,4 +1,4 @@
-import { updateLocalStorage } from './storage.js';
+import { localStorageProvider } from './index.js';
 import { HistoryRetentionPeriod, HistoryRetentionPeriodConfiguration, IconStyle } from './types.js';
 
 export const getIconPath = (iconStyle: IconStyle) => {
@@ -24,7 +24,7 @@ export const getHistoryRetentionPeriodConfiguration = (historyRetentionPeriod: H
     return HistoryRetentionPeriodConfiguration[historyRetentionPeriod];
 };
 
-export const shuffleBookmarkSelection = () => updateLocalStorage({ selectedNodeIds: [] });
+export const shuffleBookmarkSelection = () => localStorageProvider.set({ selectedNodeIds: [] });
 
 export const delay = (milliseconds: number = 1000) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -94,11 +94,9 @@ export const setupSelectionButton = <T>(
     label.textContent = value[0];
 
     button.addEventListener('click', async (ev) => {
-        console.log('click');
         button.classList.add('loading');
         index = (index + 1) % values.length;
         value = values[index];
-        console.log(index), value;
         await listener(ev, value[1]);
         label.textContent = value[0];
         button.classList.remove('loading');
